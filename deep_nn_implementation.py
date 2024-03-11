@@ -1,6 +1,5 @@
 import numpy as np
 import csv
-from sklearn.neural_network import MLPRegressor as nn
 
 training_set_y = np.genfromtxt("training_set_adt.csv", delimiter=",", dtype=float, skip_header=1)[:,1:]
 training_set_x = np.genfromtxt("training_set_rna.csv", delimiter=",", dtype=float, skip_header=1)[:,1:]
@@ -102,11 +101,6 @@ w1, w2, wn, b1, b2, bn = deep_nn(X, Y, 100, 100, funct="ReLU")
 z1 = forward(test_X, w1, b1, "ReLU")
 z2 = forward(z1, w2, b2, "ReLU")
 results = forward(z2, wn, bn, "ReLU")
-
-# print(np.corrcoef(np.matrix.flatten(results), np.matrix.flatten(test_Y))[0,1])
-
-# clf = nn(random_state=12345, max_iter=1000,  learning_rate_init=0.0001, hidden_layer_sizes=(225,100), activation='logistic', beta_1=(0.98)).fit(X, Y)
-# results = clf.predict(test_X)
 
 results = results.reshape((-1, 1))
 
