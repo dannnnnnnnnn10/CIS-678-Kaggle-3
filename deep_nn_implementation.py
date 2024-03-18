@@ -15,11 +15,7 @@ test_X = test_set_x.T
 
 print(Y[0])
 
-def create_image(index):
-    image = X[index].reshape(28, 28)
-    return image
-
-plt.imshow(create_image(0), cmap='gray')
+plt.imshow(X[0].reshape(28, 28), cmap='gray')
 plt.show()
 
 def train_test_split(X, test_size=0.2, random_state=None):
@@ -40,12 +36,20 @@ def dReLU (z):
     return y
 
 def softmax(y):
-    exps = np.exp(y - np.max(y, axis=-1, keepdims=True))
-    return exps / np.sum(exps, axis=-1, keepdims=True)
+    return np.exp(y) / sum(np.exp(y))
 
 def d_softmax(z):
-    probs = softmax(z)
-    return np.eye(probs.shape[-1]) * probs - np.outer(probs, probs)
+    gz = softmax(z)
+    side_length = z.size
+    deriv = np.zeros((side_length, side_length))
+    for i in range(side_length):
+        for j in range(side_length):
+            if (i == j):
+                deriv[i,j] = gz[i] * (1 - gz[i])
+            else:
+                deriv[i,j] = -gz[i] * gz[j]
+    np.round(deriv, 2)
+    return deriv
 
 def sigmoid(y):
     return 1 / (1 + np.exp(-y))
@@ -96,7 +100,8 @@ def deep_nn(X, y, hidden_size_1, hidden_size_2, num_epochs=100, learning_rate=0.
             dy2 = np.dot(dyn, wn.T) * dReLU(z2)
             dy1 = np.dot(dy2, w2.T) * dReLU(z1)
             
-            
+            print(wn.shape)
+            print(dyn.shape)
             wn = wn + (learning_rate * np.outer(z2, dyn))
             bn = bn + (learning_rate * dyn)
             w2 = w2 + (learning_rate * np.outer(z1, dy2))
@@ -118,7 +123,7 @@ w1, w2, wn, b1, b2, bn = deep_nn(X, Y, 100, 100, num_epochs=10)
 
 z1 = forward(test_X, w1, b1, "ReLU")
 z2 = forward(z1, w2, b2, "ReLU")
-results = forward(z2, wn, bn, "Sigmoid")
+results = forward(z2, wn, bn, "Softmax")
 
 results = results.reshape((-1, 1))
 
