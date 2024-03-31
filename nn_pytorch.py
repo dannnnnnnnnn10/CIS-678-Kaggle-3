@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import TensorDataset, DataLoader, random_split
 import numpy as np
 import csv
 import matplotlib.pyplot as plt
@@ -33,8 +33,11 @@ y_train = y_train.to(torch.long)
 x_valid = torch.from_numpy(test_X)
 x_valid = x_valid.to(torch.float32)
 
-train_ds = TensorDataset(x_train, y_train)
+x_ds = TensorDataset(x_train, y_train)
+
+train_ds, test_ds = random_split(x_ds, [0.7, 0.3])
 train_dl = DataLoader(train_ds, batch_size=64)
+test_dl = DataLoader(test_ds, batch_size=64)
 
 device = "cpu"
 
@@ -42,11 +45,13 @@ class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
         self.stack = nn.Sequential(
-            nn.Linear(784, 250),
+            nn.Dropout(p=0.1),
+            nn.Linear(784, 160),
             nn.ReLU(),
-            nn.Linear(250, 50),
+            nn.LayerNorm(160),
+            nn.Linear(160, 45),
             nn.ReLU(),
-            nn.Linear(50, 10),
+            nn.Linear(45, 10),
             nn.Softmax(dim=1)
         )
     
@@ -57,7 +62,7 @@ class NeuralNetwork(nn.Module):
 model = NeuralNetwork().to(device)
 
 loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 def train(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
@@ -72,27 +77,33 @@ def train(dataloader, model, loss_fn, optimizer):
 
         if batch % 100 == 0:
             loss, current = loss.item(), (batch + 1) * len(X)
-            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+            # print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+
+def test(dataloader, model, loss_fn):
+    size = len(dataloader.dataset)
+    num_batches = len(dataloader)
+    model.eval()
+    test_loss, correct = 0, 0
+    with torch.no_grad():
+        for X, y in dataloader:
+            pred = model(X)
+            test_loss += loss_fn(pred, y).item()
+            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+    test_loss /= num_batches
+    correct /= size
+    # print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    print(str(100*correct))
 
 epochs = 50
 for t in range(epochs):
-    print(f"Epoch {t+1}\n-------------------------------")
+    # print(f"Epoch {t+1}\n-------------------------------")
     train(train_dl, model, loss_fn, optimizer)
+    test(test_dl, model, loss_fn)
 print("Done!")
 
-pred = model(x_train)
-pred = pred.detach().numpy()
-
-correct = 0
-
-for i in range(pred[:,0].size):
-    if training_set_y[i] == np.argmax(pred[i]):
-        correct += 1
-
-print("Accuracy: " + str(correct / pred[:,0].size * 100))
-
-pred = model(x_valid)
-pred = pred.detach().numpy()
+with torch.no_grad():
+    pred = model(x_valid)
+    pred = pred.detach().numpy()
 
 results = np.zeros(test_X[:,0].size)
 for i in range(test_X[:,0].size):

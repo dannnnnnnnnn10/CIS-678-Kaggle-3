@@ -152,7 +152,7 @@ def deep_nn(X, y, hidden_size_1, hidden_size_2, num_epochs=100, learning_rate=0.
 # train_X = train[:,25:]
 # train_Y = train[:,0:25]
 
-w1, w2, wn, b1, b2, bn = deep_nn(X, Y, 150, 50, num_epochs=10)
+w1, w2, wn, b1, b2, bn = deep_nn(X, Y, 250, 50, num_epochs=10)
 
 z1 = forward(test_X, w1, b1, "ReLU")
 z2 = forward(z1, w2, b2, "ReLU")
